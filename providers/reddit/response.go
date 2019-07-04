@@ -13,6 +13,7 @@ type post struct {
 }
 
 type postdata struct {
-	Ups int    `json:"ups"`
-	URL string `json:"url"`
+	Title string `json:"title"`
+	Ups   int    `json:"ups"`
+	URL   string `json:"url"`
 }

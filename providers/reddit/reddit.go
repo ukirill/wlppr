@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -23,7 +24,7 @@ const (
 // New Reddit wallpapers provider
 func New() *Provider {
 	return &Provider{
-		siteurl: "https://www.reddit.com/r/wallpapers/new/.json?limit=100",
+		siteurl: "https://www.reddit.com/r/wallpaper/top/.json?t=month&limit=100",
 	}
 }
 
@@ -47,14 +48,13 @@ func (r *Provider) Refresh() error {
 		return fmt.Errorf("not successfull request, code: %v, %v", resp.StatusCode, resp.Status)
 	}
 
-	list := []string{}
 	v := &response{}
 	json.NewDecoder(resp.Body).Decode(v)
 	for _, item := range v.Data.Children {
-		if item.Data.Ups < 10 {
+		if item.Data.Ups < 10 || strings.Contains(item.Data.Title, "1920") {
 			continue
 		}
-		list = append(list, item.Data.URL)
+		r.newpics = append(r.newpics, item.Data.URL)
 	}
 
 	return nil

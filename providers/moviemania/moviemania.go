@@ -28,11 +28,10 @@ type Provider struct {
 
 // New Moviemania provider
 func New() *Provider {
-	// TODO: mandatory? field init
 	return &Provider{
 		siteurl:   "https://www.moviemania.io",
+		allpics:   make([]string, 0, 500),
 		genreurls: map[string]string{},
-		allpics:   []string{},
 		genrepics: map[string][]string{},
 	}
 }

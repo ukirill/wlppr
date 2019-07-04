@@ -1,4 +1,4 @@
-package main
+package switcher
 
 import (
 	"fmt"
@@ -9,9 +9,10 @@ import (
 	"path"
 	"path/filepath"
 	"syscall"
+	"time"
 	"unsafe"
 
-	mm "github.com/ukirill/wlppr-go/providers/moviemania"
+	"github.com/ukirill/wlppr-go/providers"
 )
 
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms724947.aspx
@@ -33,6 +34,26 @@ var (
 	systemParametersInfo = user32.NewProc("SystemParametersInfoW")
 )
 
+// Switcher uses providers to get random wallpaper and place it on desktop
+type Switcher struct {
+	provs []providers.Provider
+}
+
+func New(p ...providers.Provider) *Switcher {
+	return &Switcher{provs: p}
+}
+
+// Add provider as source for wallpaper
+func (s *Switcher) Add(p ...providers.Provider) {
+	s.provs = append(s.provs, p...)
+}
+
+// Switch to new wallpaper
+func (s *Switcher) Switch() error {
+	rand.Seed(time.Now().Unix())
+	return switchWallpaper(s.provs[rand.Intn(len(s.provs))])
+}
+
 // setFromFile sets the wallpaper for the current user.
 func setFromFile(filename string) error {
 	filenameUTF16, err := syscall.UTF16PtrFromString(filename)
@@ -49,11 +70,18 @@ func setFromFile(filename string) error {
 	return nil
 }
 
-func switchWallpaper(m *mm.Provider) {
-	url, _ := m.Random()
-	path, _ := downloadPic(url)
-	fmt.Println(path)
+func switchWallpaper(p providers.Provider) error {
+	url, err := p.Random()
+	if err != nil {
+		return fmt.Errorf("error getting random url, might be empty list, try to refresh: %v", err)
+	}
+	path, err := downloadPic(url)
+	if err != nil {
+		return fmt.Errorf("erorr while downloading pic: %v", err)
+	}
+
 	setFromFile(path)
+	return nil
 }
 
 func downloadPic(url string) (string, error) {

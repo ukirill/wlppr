@@ -3,10 +3,15 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"time"
 
 	"github.com/getlantern/systray"
-	mm "github.com/ukirill/wlppr-go/providers/moviemania"
+	"github.com/ukirill/wlppr-go/providers"
+	"github.com/ukirill/wlppr-go/providers/moviemania"
+	"github.com/ukirill/wlppr-go/providers/reddit"
+	"github.com/ukirill/wlppr-go/switcher"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -16,34 +21,41 @@ func main() {
 func onReady() {
 	systray.SetIcon(getIcon("resources/icon.ico"))
 	systray.SetTitle("Wlppr!")
-	m := mm.New()
-	refresh(m)
-	n := systray.AddMenuItem("New wlppr", "Get new random wallpaper")
-	r := systray.AddMenuItem("Refresh wlpprs' list", "Refresh wallpapers list from Moviemania.io")
-	r.Hide()
-	q := systray.AddMenuItem("Quit", "Quit the app")
+	mm := moviemania.New()
+	rd := reddit.New()
+	if err := refreshProviders(mm, rd); err != nil {
+		// TODO: retry logic
+		log.Fatal(err)
+	}
+	sw := switcher.New(mm, rd)
+
+	wlppr := systray.AddMenuItem("New wlppr", "Get new random wallpaper")
+	refresh := systray.AddMenuItem("Refresh wlpprs' list", "Refresh wallpapers list from Moviemania.io")
+	refresh.Hide()
+	quit := systray.AddMenuItem("Quit", "Quit the app")
 	fmt.Println("ready")
+
 	d := time.Hour * 2
-	t := time.NewTimer(d)
+	timer := time.NewTimer(d)
 	for {
 		select {
-		case <-n.ClickedCh:
-			go switchWallpaper(m)
-			if !t.Stop() {
-				<-t.C
+		case <-wlppr.ClickedCh:
+			// TODO: handle error
+			go sw.Switch()
+			if !timer.Stop() {
+				<-timer.C
 			}
-			t.Reset(d)
-		case <-t.C:
-			go switchWallpaper(m)
-			t.Reset(d)
-		case <-r.ClickedCh:
+			timer.Reset(d)
+		case <-timer.C:
+			go sw.Switch()
+			timer.Reset(d)
+		case <-refresh.ClickedCh:
 			go func() {
-				refresh(m)
+				refreshProviders(mm, rd)
 			}()
-		case <-q.ClickedCh:
+		case <-quit.ClickedCh:
 			systray.Quit()
 		}
-
 	}
 }
 
@@ -51,10 +63,19 @@ func onExit() {
 
 }
 
-func refresh(m *mm.Provider) {
+func refreshProviders(provs ...providers.Provider) error {
 	systray.SetTooltip("Initialize wlppr list")
-	m.Refresh()
-	systray.SetTooltip("Wlppr switcher")
+	defer systray.SetTooltip("Wlppr switcher")
+
+	g := errgroup.Group{}
+	for _, p := range provs {
+		p := p
+		g.Go(func() error {
+			log.Print(p)
+			return p.Refresh()
+		})
+	}
+	return g.Wait()
 }
 
 func getIcon(s string) []byte {
