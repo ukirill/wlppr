@@ -1,8 +1,14 @@
 package switcher
 
+// TODO: add to switcher
+// 1. Refresh
+// 2. Save current to pics (kinda Favs)
+// 3. Switch by timeout setting
+
 import (
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -61,12 +67,15 @@ func setFromFile(filename string) error {
 		return err
 	}
 
-	systemParametersInfo.Call(
+	if _, _, err := systemParametersInfo.Call(
 		uintptr(spiSetDeskWallpaper),
 		uintptr(uiParam),
 		uintptr(unsafe.Pointer(filenameUTF16)),
 		uintptr(spifUpdateINIFile|spifSendChange),
-	)
+	); err != nil {
+		// TODO: Always timeout error. Need filter
+		log.Print(err)
+	}
 	return nil
 }
 
@@ -80,7 +89,9 @@ func switchWallpaper(p providers.Provider) error {
 		return fmt.Errorf("erorr while downloading pic: %v", err)
 	}
 
-	setFromFile(path)
+	if err := setFromFile(path); err != nil {
+		return fmt.Errorf("error setting wallpaper from file: %v", err)
+	}
 	return nil
 }
 
@@ -90,8 +101,17 @@ func downloadPic(url string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	fext := filepath.Ext(url)
+	if fext == "" {
+		fext = ".jpg"
+	}
 
-	fname := randStringBytes(16) + ".jpg"
+	fname := randStringBytes(16) + fext
+	if _, err := os.Stat("cache"); os.IsNotExist(err) {
+		if err := os.Mkdir("cache", os.ModeDir); err != nil {
+			return "", err
+		}
+	}
 	p := path.Join("cache", fname)
 
 	// Create the file
@@ -102,7 +122,9 @@ func downloadPic(url string) (string, error) {
 	defer out.Close()
 
 	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
+	if _, err = io.Copy(out, resp.Body); err != nil {
+		return "", err
+	}
 	return filepath.Abs(p)
 }
 

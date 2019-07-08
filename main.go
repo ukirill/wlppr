@@ -14,6 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// ! obsolete
 func main() {
 	systray.Run(onReady, onExit)
 }
@@ -24,7 +25,6 @@ func onReady() {
 	mm := moviemania.New()
 	rd := reddit.New()
 	if err := refreshProviders(mm, rd); err != nil {
-		// TODO: retry logic
 		log.Fatal(err)
 	}
 	sw := switcher.New(mm, rd)
@@ -37,10 +37,10 @@ func onReady() {
 
 	d := time.Hour * 2
 	timer := time.NewTimer(d)
+
 	for {
 		select {
 		case <-wlppr.ClickedCh:
-			// TODO: handle error
 			go sw.Switch()
 			if !timer.Stop() {
 				<-timer.C
@@ -71,7 +71,6 @@ func refreshProviders(provs ...providers.Provider) error {
 	for _, p := range provs {
 		p := p
 		g.Go(func() error {
-			log.Print(p)
 			return p.Refresh()
 		})
 	}

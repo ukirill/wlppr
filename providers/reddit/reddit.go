@@ -22,9 +22,9 @@ const (
 )
 
 // New Reddit wallpapers provider
-func New() *Provider {
+func New(url string) *Provider {
 	return &Provider{
-		siteurl: "https://www.reddit.com/r/wallpaper/top/.json?t=month&limit=100",
+		siteurl: url,
 	}
 }
 
