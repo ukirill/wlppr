@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -49,9 +48,11 @@ func (r *Provider) Refresh() error {
 	}
 
 	v := &response{}
-	json.NewDecoder(resp.Body).Decode(v)
+	if err = json.NewDecoder(resp.Body).Decode(v); err != nil {
+		return fmt.Errorf("couldnt decoded response: %v", err)
+	}
 	for _, item := range v.Data.Children {
-		if item.Data.Ups < 10 || strings.Contains(item.Data.Title, "1920") {
+		if item.Data.Ups < 10 {
 			continue
 		}
 		r.newpics = append(r.newpics, item.Data.URL)

@@ -9,7 +9,8 @@ import (
 
 	"github.com/lxn/walk"
 	"github.com/ukirill/wlppr-go/providers"
-	"github.com/ukirill/wlppr-go/providers/moviemania"
+
+	//"github.com/ukirill/wlppr-go/providers/moviemania"
 	"github.com/ukirill/wlppr-go/providers/reddit"
 	"github.com/ukirill/wlppr-go/switcher"
 	"golang.org/x/sync/errgroup"
@@ -21,11 +22,11 @@ var sw *switcher.Switcher
 var provs []providers.Provider
 
 func main() {
-	mm := moviemania.New()
-	rd1 := reddit.New("https://www.reddit.com/r/wallpaper/top/.json?t=month&limit=100")
-	rd2 := reddit.New("https://www.reddit.com/r/wallpapers/top/.json?t=month&limit=100")
-	sw = switcher.New(mm, rd1, rd2)
-	provs = []providers.Provider{mm, rd1, rd2}
+	//mm := moviemania.New()
+	rd1 := reddit.New("https://www.reddit.com/r/wallpaper/hot/.json?t=year&limit=100")
+	rd2 := reddit.New("https://www.reddit.com/r/wallpapers/hot/.json?t=month&limit=100")
+	sw = switcher.New(rd1, rd2)
+	provs = []providers.Provider{rd1, rd2}
 	mw, err := walk.NewMainWindow()
 	if err != nil {
 		log.Fatal(err)
@@ -56,15 +57,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	wlpprAct, err := addNewAction("W&LPPR!", ni, switchHandler)
+	// Action for switching wlpprs
+	wlpprAct, err := addNewAction("W&LPPR!", ni.ContextMenu().Actions(), switchHandler)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := wlpprAct.SetEnabled(false); err != nil {
+	if err = wlpprAct.SetEnabled(false); err != nil {
 		log.Fatal(err)
 	}
 
-	refAct, err := addNewAction("R&efresh source", ni, refreshHandler)
+	addMonitorMenu(ni.ContextMenu().Actions())
+
+	// Action for refreshing providers sources
+	refAct, err := addNewAction("R&efresh source", ni.ContextMenu().Actions(), refreshHandler)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +77,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if _, err := addNewAction("E&xit", ni, exitHandler); err != nil {
+	// Action for exit
+	if _, err := addNewAction("E&xit", ni.ContextMenu().Actions(), exitHandler); err != nil {
 		log.Fatal(err)
 	}
 
@@ -116,8 +122,7 @@ func refreshProviders(provs ...providers.Provider) error {
 	return g.Wait()
 }
 
-func addNewAction(name string, ni *walk.NotifyIcon, handler walk.EventHandler) (*walk.Action, error) {
-	actions := ni.ContextMenu().Actions()
+func addNewAction(name string, actions *walk.ActionList, handler walk.EventHandler) (*walk.Action, error) {
 	action := walk.NewAction()
 	if err := action.SetText(name); err != nil {
 		return nil, err
@@ -128,6 +133,41 @@ func addNewAction(name string, ni *walk.NotifyIcon, handler walk.EventHandler) (
 	}
 
 	return action, nil
+}
+
+func addMonitorMenu(actions *walk.ActionList) {
+
+	monitorNumMenu, _ := walk.NewMenu()
+	monitorNumMenuAct, _ := actions.AddMenu(monitorNumMenu)
+	monitorNumMenuAct.SetText("Monitors")
+	monitorNumMenuAct.SetToolTip("Set number of monitors")
+	oneAct, err := addNewAction("1", monitorNumMenu.Actions(), func() {})
+	if err != nil {
+		log.Fatal(err)
+	}
+	oneAct.SetCheckable(true)
+	oneAct.SetChecked(true)
+	oneAct.Triggered().Attach(monitorHandler(1))
+	twoAct, err := addNewAction("2", monitorNumMenu.Actions(), func() {})
+	if err != nil {
+		log.Fatal(err)
+	}
+	twoAct.SetCheckable(true)
+	twoAct.Triggered().Attach(monitorHandler(2))
+	oneAct.Triggered().Attach(func() {
+		oneAct.SetChecked(true)
+		twoAct.SetChecked(false)
+	})
+	twoAct.Triggered().Attach(func() {
+		oneAct.SetChecked(false)
+		twoAct.SetChecked(true)
+	})
+}
+
+func monitorHandler(n int) walk.EventHandler {
+	return func() {
+		sw.MonitorNum = n
+	}
 }
 
 func exitHandler() {
@@ -141,7 +181,8 @@ func refreshHandler() {
 }
 
 func switchHandler() {
-	if err := sw.Switch(); err != nil {
-		log.Fatal(err)
-	}
+	go sw.Switch()
+	// if err := sw.Switch(); err != nil {
+	// 	log.Fatal(err)
+	// }
 }

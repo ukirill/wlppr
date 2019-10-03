@@ -4,6 +4,7 @@ package switcher
 // 1. Refresh
 // 2. Save current to pics (kinda Favs)
 // 3. Switch by timeout setting
+// 4. Multimonitor
 
 import (
 	"fmt"
@@ -42,11 +43,19 @@ var (
 
 // Switcher uses providers to get random wallpaper and place it on desktop
 type Switcher struct {
-	provs []providers.Provider
+	provs      []providers.Provider
+	resH       int
+	resW       int
+	MonitorNum int
 }
 
 func New(p ...providers.Provider) *Switcher {
-	return &Switcher{provs: p}
+	return &Switcher{
+		provs:      p,
+		resH:       1080,
+		resW:       1920,
+		MonitorNum: 1,
+	}
 }
 
 // Add provider as source for wallpaper
@@ -55,9 +64,10 @@ func (s *Switcher) Add(p ...providers.Provider) {
 }
 
 // Switch to new wallpaper
+// Receives number of monitors
 func (s *Switcher) Switch() error {
 	rand.Seed(time.Now().Unix())
-	return switchWallpaper(s.provs[rand.Intn(len(s.provs))])
+	return s.switchWallpaper(s.provs[rand.Intn(len(s.provs))])
 }
 
 // setFromFile sets the wallpaper for the current user.
@@ -79,17 +89,27 @@ func setFromFile(filename string) error {
 	return nil
 }
 
-func switchWallpaper(p providers.Provider) error {
-	url, err := p.Random()
-	if err != nil {
-		return fmt.Errorf("error getting random url, might be empty list, try to refresh: %v", err)
-	}
-	path, err := downloadPic(url)
-	if err != nil {
-		return fmt.Errorf("erorr while downloading pic: %v", err)
+func (s *Switcher) switchWallpaper(p providers.Provider) error {
+	i := 0
+	paths := make([]string, s.MonitorNum)
+	for i < s.MonitorNum {
+		url, err := p.Random()
+		if err != nil {
+			return fmt.Errorf("error getting random url, might be empty list, try to refresh: %v", err)
+		}
+		paths[i], err = downloadPic(url)
+		if err != nil {
+			return fmt.Errorf("erorr while downloading pic: %v", err)
+		}
+		i++
 	}
 
-	if err := setFromFile(path); err != nil {
+	img, err := s.mergeImage(paths)
+	if err != nil {
+		return fmt.Errorf("error while post-processing images: %v", err)
+	}
+
+	if err := setFromFile(img); err != nil {
 		return fmt.Errorf("error setting wallpaper from file: %v", err)
 	}
 	return nil
@@ -126,6 +146,16 @@ func downloadPic(url string) (string, error) {
 		return "", err
 	}
 	return filepath.Abs(p)
+}
+
+func randImageName(fext string) (string, error) {
+	fname := randStringBytes(16) + fext
+	if _, err := os.Stat("cache"); os.IsNotExist(err) {
+		if err := os.Mkdir("cache", os.ModeDir); err != nil {
+			return "", err
+		}
+	}
+	return path.Join("cache", fname), nil
 }
 
 func randStringBytes(n int) string {
