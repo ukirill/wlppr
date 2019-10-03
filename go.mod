@@ -3,7 +3,9 @@ module github.com/ukirill/wlppr-go
 go 1.12
 
 require (
+	github.com/akavel/rsrc v0.8.0 // indirect
 	github.com/anaskhan96/soup v1.1.1
+	github.com/andlabs/ui v0.0.0-20180902183112-867a9e5a498d
 	github.com/anthonynsimon/bild v0.10.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 // indirect

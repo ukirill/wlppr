@@ -3,6 +3,7 @@ package switcher
 import (
 	"image"
 	"image/draw"
+	"os"
 	"path/filepath"
 
 	"github.com/anthonynsimon/bild/imgio"
@@ -35,6 +36,8 @@ func (s *Switcher) merge(path1, path2 string) (string, error) {
 	draw.Draw(rgba, r2, img2, image.Point{0, 0}, draw.Src)
 	fn, err := randImageName(".png")
 	imgio.Save(fn, rgba.SubImage(r), imgio.PNG)
+	os.Remove(path1)
+	os.Remove(path2)
 	return fn, err
 }
 

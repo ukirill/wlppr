@@ -7,6 +7,7 @@ package main
 import (
 	"log"
 
+	_ "github.com/andlabs/ui/winmanifest"
 	"github.com/lxn/walk"
 	"github.com/ukirill/wlppr-go/providers"
 
