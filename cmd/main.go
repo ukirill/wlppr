@@ -1,33 +1,46 @@
 package main
 
-//TODO: better logging
+// TODO: better logging
 // ? remove fatal everywhere? notification maybe
-// ? struct + methods for "statful tray icon"
+// ? struct + methods for "stateful tray icon"
 
 import (
 	"log"
+	"os"
 
-	_ "github.com/andlabs/ui/winmanifest"
 	"github.com/lxn/walk"
-	"github.com/ukirill/wlppr-go/providers"
 
-	//"github.com/ukirill/wlppr-go/providers/moviemania"
+	"github.com/ukirill/wlppr-go/providers"
 	"github.com/ukirill/wlppr-go/providers/reddit"
 	"github.com/ukirill/wlppr-go/switcher"
-	"golang.org/x/sync/errgroup"
 )
 
-var sw *switcher.Switcher
+// Program state
+var (
+	sw *switcher.Switcher
+	as *switcher.AutoSwitcher
 
-// TODO: make switcher able to refresh provs and remove
-var provs []providers.Provider
+	// TODO: make switcher able to refresh provs and remove
+	provs []providers.Provider
+)
 
 func main() {
-	//mm := moviemania.New()
-	rd1 := reddit.New("https://www.reddit.com/r/wallpaper/hot/.json?t=year&limit=100")
+	f, err := os.OpenFile("wlppr.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+	log.Println("Wlppr starts")
+
+	rd1 := reddit.New("https://www.reddit.com/r/wallpaper/hot/.json?t=month&limit=100")
 	rd2 := reddit.New("https://www.reddit.com/r/wallpapers/hot/.json?t=month&limit=100")
 	sw = switcher.New(rd1, rd2)
+	as = switcher.NewAutoSwitcher(sw, 15)
 	provs = []providers.Provider{rd1, rd2}
+	log.Println("Providers created")
+
 	mw, err := walk.NewMainWindow()
 	if err != nil {
 		log.Fatal(err)
@@ -59,7 +72,7 @@ func main() {
 	}
 
 	// Action for switching wlpprs
-	wlpprAct, err := addNewAction("W&LPPR!", ni.ContextMenu().Actions(), switchHandler)
+	wlpprAct, err := addNewAction("W&LPPR!", ni.ContextMenu().Actions(), switchHandler(sw))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,9 +81,10 @@ func main() {
 	}
 
 	addMonitorMenu(ni.ContextMenu().Actions())
+	addTimeoutMenu(ni.ContextMenu().Actions())
 
 	// Action for refreshing providers sources
-	refAct, err := addNewAction("R&efresh source", ni.ContextMenu().Actions(), refreshHandler)
+	refAct, err := addNewAction("R&efresh source", ni.ContextMenu().Actions(), refreshHandler(provs...))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -93,7 +107,7 @@ func main() {
 		if err := ni.ShowInfo("Wlppr is starting", "Functions will be available after providers init'd"); err != nil {
 			log.Fatal(err)
 		}
-		if err := refreshProviders(provs...); err != nil {
+		if err := refreshProviders(rd1, rd2); err != nil {
 			log.Fatal(err)
 		}
 		if err := ni.ShowInfo("Wlppr init'd", "Use context menu on tray icon"); err != nil {
@@ -112,78 +126,31 @@ func main() {
 	mw.Run()
 }
 
-func refreshProviders(provs ...providers.Provider) error {
-	g := errgroup.Group{}
-	for _, p := range provs {
-		p := p
-		g.Go(func() error {
-			return p.Refresh()
-		})
-	}
-	return g.Wait()
-}
-
-func addNewAction(name string, actions *walk.ActionList, handler walk.EventHandler) (*walk.Action, error) {
-	action := walk.NewAction()
-	if err := action.SetText(name); err != nil {
-		return nil, err
-	}
-	action.Triggered().Attach(func() { handler() })
-	if err := actions.Add(action); err != nil {
-		return nil, err
-	}
-
-	return action, nil
-}
-
 func addMonitorMenu(actions *walk.ActionList) {
-
 	monitorNumMenu, _ := walk.NewMenu()
 	monitorNumMenuAct, _ := actions.AddMenu(monitorNumMenu)
 	monitorNumMenuAct.SetText("Monitors")
 	monitorNumMenuAct.SetToolTip("Set number of monitors")
-	oneAct, err := addNewAction("1", monitorNumMenu.Actions(), func() {})
+	oneAct, err := addNewRadioAction("1", monitorNumMenu.Actions(), monitorHandler(sw, 1))
 	if err != nil {
 		log.Fatal(err)
 	}
-	oneAct.SetCheckable(true)
 	oneAct.SetChecked(true)
-	oneAct.Triggered().Attach(monitorHandler(1))
-	twoAct, err := addNewAction("2", monitorNumMenu.Actions(), func() {})
+	_, err = addNewRadioAction("2", monitorNumMenu.Actions(), func() {
+		monitorHandler(sw, 2)()
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	twoAct.SetCheckable(true)
-	twoAct.Triggered().Attach(monitorHandler(2))
-	oneAct.Triggered().Attach(func() {
-		oneAct.SetChecked(true)
-		twoAct.SetChecked(false)
-	})
-	twoAct.Triggered().Attach(func() {
-		oneAct.SetChecked(false)
-		twoAct.SetChecked(true)
-	})
 }
 
-func monitorHandler(n int) walk.EventHandler {
-	return func() {
-		sw.MonitorNum = n
-	}
-}
-
-func exitHandler() {
-	walk.App().Exit(0)
-}
-
-func refreshHandler() {
-	if err := refreshProviders(provs...); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func switchHandler() {
-	go sw.Switch()
-	// if err := sw.Switch(); err != nil {
-	// 	log.Fatal(err)
-	// }
+func addTimeoutMenu(actions *walk.ActionList) {
+	timeoutMenu, _ := walk.NewMenu()
+	timeoutMenuAct, _ := actions.AddMenu(timeoutMenu)
+	timeoutMenuAct.SetText("Timeout")
+	timeoutMenuAct.SetToolTip("Set timeout for refreshing wallpapers")
+	offAct, _ := addNewRadioAction("off", timeoutMenu.Actions(), timeoutHandler(as, 0))
+	offAct.SetChecked(true)
+	addNewRadioAction("15 min", timeoutMenu.Actions(), timeoutHandler(as, 15))
+	addNewRadioAction("1 hour", timeoutMenu.Actions(), timeoutHandler(as, 60))
 }
