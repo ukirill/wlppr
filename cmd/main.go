@@ -10,6 +10,7 @@ import (
 
 	"github.com/lxn/walk"
 
+	"github.com/ukirill/wlppr-go/internal"
 	"github.com/ukirill/wlppr-go/providers"
 	"github.com/ukirill/wlppr-go/providers/reddit"
 	"github.com/ukirill/wlppr-go/switcher"
@@ -25,7 +26,11 @@ var (
 )
 
 func main() {
-	f, err := os.OpenFile("wlppr.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logfile, err := internal.GetAppDataPath("wlppr.log")
+	if err != nil {
+		log.Fatalf("error creating log file: %v", err)
+	}
+	f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
@@ -46,8 +51,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// We load our icon from a file.
-	icon, err := walk.Resources.Icon("../resources/icon.ico")
+	// We load our icon from embedded resource
+	icon, err := walk.Resources.Icon("10")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -8,6 +8,8 @@ import (
 
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/anthonynsimon/bild/transform"
+
+	"github.com/ukirill/wlppr-go/internal"
 )
 
 func (s Switcher) mergeImage(paths []string) (fn string, err error) {
@@ -45,4 +47,14 @@ func (s *Switcher) transform(path string) image.Image {
 	img, _ := imgio.Open(path)
 	trans := transform.Resize(img, s.resW, s.resH, transform.Lanczos)
 	return trans.SubImage(image.Rect(0, 0, s.resW, s.resH))
+}
+
+func randImageName(fext string) (string, error) {
+	fname := randStringBytes(16) + fext
+	var err error
+	fname, err = internal.GetCachePath(fname)
+	if err != nil {
+		return "", err
+	}
+	return fname, nil
 }

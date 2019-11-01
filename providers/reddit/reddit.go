@@ -61,8 +61,7 @@ func (r *Provider) Refresh() error {
 	return nil
 }
 
-// Random gets random picture (wallpaper) from source,
-// returns path to downloaded file
+// Random gets random picture (wallpaper) from source
 func (r *Provider) Random() (string, error) {
 	rand.Seed(time.Now().Unix())
 	return r.newpics[rand.Intn(len(r.newpics))], nil

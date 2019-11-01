@@ -1,10 +1,10 @@
 package switcher
 
 // TODO: add to switcher
-// 1. Refresh
+// DONE: 1. Refresh
 // 2. Save current to pics (kinda Favs)
-// 3. Switch by timeout setting
-// 4. Multimonitor
+// DONE: 3. Switch by timeout setting
+// DONE: 4. Multimonitor
 
 import (
 	"fmt"
@@ -13,12 +13,12 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"syscall"
 	"time"
 	"unsafe"
 
+	"github.com/ukirill/wlppr-go/internal"
 	"github.com/ukirill/wlppr-go/providers"
 )
 
@@ -33,13 +33,13 @@ const (
 	spifSendChange    = 0x02
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms724947.aspx
 var (
 	user32               = syscall.NewLazyDLL("user32.dll")
 	systemParametersInfo = user32.NewProc("SystemParametersInfoW")
 )
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 // Switcher uses providers to get random wallpaper and place it on desktop
 type Switcher struct {
@@ -127,12 +127,10 @@ func downloadPic(url string) (string, error) {
 	}
 
 	fname := randStringBytes(16) + fext
-	if _, err := os.Stat("cache"); os.IsNotExist(err) {
-		if err := os.Mkdir("cache", os.ModeDir); err != nil {
-			return "", err
-		}
+	p, err := internal.GetCachePath(fname)
+	if err != nil {
+		return "", err
 	}
-	p := path.Join("cache", fname)
 
 	// Create the file
 	out, err := os.Create(p)
@@ -146,16 +144,6 @@ func downloadPic(url string) (string, error) {
 		return "", err
 	}
 	return filepath.Abs(p)
-}
-
-func randImageName(fext string) (string, error) {
-	fname := randStringBytes(16) + fext
-	if _, err := os.Stat("cache"); os.IsNotExist(err) {
-		if err := os.Mkdir("cache", os.ModeDir); err != nil {
-			return "", err
-		}
-	}
-	return path.Join("cache", fname), nil
 }
 
 func randStringBytes(n int) string {

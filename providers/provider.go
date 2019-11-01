@@ -4,6 +4,6 @@ package providers
 type Provider interface {
 	// Refresh source of wallpapers
 	Refresh() error
-	// Random return random wallpaper from source
+	// Random returns url of random wallpaper from source
 	Random() (string, error)
 }
