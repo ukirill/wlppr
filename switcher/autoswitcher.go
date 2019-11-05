@@ -1,6 +1,9 @@
 package switcher
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 type AutoSwitcher struct {
 	sw      *Switcher
@@ -35,7 +38,9 @@ func (as *AutoSwitcher) Start() {
 
 				return
 			case <-ticker.C:
-				as.sw.Switch()
+				if err := as.sw.Switch(); err != nil{
+					log.Printf("error on autoswitching wallpaper: %v", err)
+				}
 			}
 		}
 	}()

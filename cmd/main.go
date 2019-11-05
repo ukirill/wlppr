@@ -2,7 +2,6 @@ package main
 
 // TODO: better logging
 // ? remove fatal everywhere? notification maybe
-// ? struct + methods for "stateful tray icon"
 
 import (
 	"log"
