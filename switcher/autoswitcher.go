@@ -38,7 +38,7 @@ func (as *AutoSwitcher) Start() {
 
 				return
 			case <-ticker.C:
-				if err := as.sw.Switch(); err != nil{
+				if err := as.sw.Switch(); err != nil {
 					log.Printf("error on autoswitching wallpaper: %v", err)
 				}
 			}

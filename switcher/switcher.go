@@ -39,8 +39,6 @@ var (
 	systemParametersInfo = user32.NewProc("SystemParametersInfoW")
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 // Switcher uses providers to get random wallpaper and place it on desktop
 type Switcher struct {
 	provs      []providers.Provider
@@ -65,10 +63,18 @@ func (s *Switcher) Add(p ...providers.Provider) {
 }
 
 // Switch to new wallpaper
-// Receives number of monitors
 func (s *Switcher) Switch() error {
 	rand.Seed(time.Now().Unix())
 	return s.switchWallpaper(s.provs[rand.Intn(len(s.provs))])
+}
+
+// SaveCur saves current wallpaper to the specified local path.
+// Path should exist
+func (s *Switcher) SaveCur(path string) error {
+	if s.current == "" {
+		return fmt.Errorf("no current wallpaper to save")
+	}
+	return internal.Copy(s.current, path)
 }
 
 // setFromFile sets the wallpaper for the current user.
@@ -127,7 +133,7 @@ func downloadPic(url string) (string, error) {
 		fext = ".jpg"
 	}
 
-	fname := randStringBytes(16) + fext
+	fname := internal.RandStringBytes(16) + fext
 	p, err := internal.GetCachePath(fname)
 	if err != nil {
 		return "", err
@@ -145,12 +151,4 @@ func downloadPic(url string) (string, error) {
 		return "", err
 	}
 	return filepath.Abs(p)
-}
-
-func randStringBytes(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
 }

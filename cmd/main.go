@@ -96,6 +96,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Action for save favourite
+	fav, err := internal.GetAppDataPath("Favs")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := addNewAction("Save to favs", ni.ContextMenu().Actions(), favHandler(sw, fav)); err != nil {
+		log.Fatal(err)
+	}
+
 	// Action for exit
 	if _, err := addNewAction("E&xit", ni.ContextMenu().Actions(), exitHandler); err != nil {
 		log.Fatal(err)
@@ -140,9 +149,7 @@ func addMonitorMenu(actions *walk.ActionList) {
 		log.Fatal(err)
 	}
 	oneAct.SetChecked(true)
-	_, err = addNewRadioAction("2", monitorNumMenu.Actions(), func() {
-		monitorHandler(sw, 2)()
-	})
+	_, err = addNewRadioAction("2", monitorNumMenu.Actions(), monitorHandler(sw, 2))
 	if err != nil {
 		log.Fatal(err)
 	}

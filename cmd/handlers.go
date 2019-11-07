@@ -26,10 +26,18 @@ func exitHandler() {
 	walk.App().Exit(0)
 }
 
+func favHandler(sw *switcher.Switcher, path string) walk.EventHandler {
+	return func() {
+		if err := sw.SaveCur(path); err != nil {
+			log.Printf("error on saving fav wlppr : %v", err)
+		}
+	}
+}
+
 func refreshHandler(provs ...providers.Provider) walk.EventHandler {
 	return func() {
 		if err := refreshProviders(provs...); err != nil {
-			log.Fatal(err)
+			log.Printf("error while refreshing providers : %v", err)
 		}
 	}
 }
@@ -49,7 +57,7 @@ func switchHandler(sw *switcher.Switcher) walk.EventHandler {
 	//go sw.Switch()
 	return func() {
 		if err := sw.Switch(); err != nil {
-			log.Fatal(err)
+			log.Printf("error switching wlppr : %v", err)
 		}
 	}
 }

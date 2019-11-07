@@ -2,12 +2,17 @@ package internal
 
 import (
 	"fmt"
+	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 )
 
+// TODO: struct for global state or settings?
 var wlpprData string
 var cache string
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 // GetAppDataDir returns path to wlppr data directory. Creates it if not exists
 func GetAppDataDir() (string, error) {
@@ -28,8 +33,11 @@ func GetAppDataPath(entry string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	return filepath.Join(appdata, entry), nil
+	p := filepath.Join(appdata, entry)
+	if err := createNotExist(p); err != nil {
+		return "", fmt.Errorf("error creatin new folder : %v", err)
+	}
+	return p, nil
 }
 
 // GetCachePath returns path to entry in cache directory. Creates cache directory if not exists
@@ -37,12 +45,9 @@ func GetCachePath(entry string) (string, error) {
 	if cache != "" {
 		return filepath.Join(cache, entry), nil
 	}
-	c, err := GetAppDataPath("cache")
+	c, err := GetAppDataPath("Cache")
 	if err != nil {
 		return "", err
-	}
-	if err := createNotExist(c); err != nil {
-		return "", fmt.Errorf("error creating cache folder : %v", err)
 	}
 	cache = c
 	return filepath.Join(cache, entry), nil
@@ -60,4 +65,40 @@ func createNotExist(path string) error {
 		return nil
 	}
 	return err
+}
+
+func Copy(src, dst string) error {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", src)
+	}
+
+	fn := filepath.Base(src)
+	fulldst := filepath.Join(dst, fn)
+
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(fulldst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+	_, err = io.Copy(destination, source)
+	return err
+}
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }

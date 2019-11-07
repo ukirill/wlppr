@@ -50,7 +50,7 @@ func (s *Switcher) transform(path string) image.Image {
 }
 
 func randImageName(fext string) (string, error) {
-	fname := randStringBytes(16) + fext
+	fname := internal.RandStringBytes(16) + fext
 	var err error
 	fname, err = internal.GetCachePath(fname)
 	if err != nil {
