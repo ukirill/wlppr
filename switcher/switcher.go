@@ -46,6 +46,7 @@ type Switcher struct {
 	provs      []providers.Provider
 	resH       int
 	resW       int
+	current    string
 	MonitorNum int
 }
 
@@ -108,10 +109,10 @@ func (s *Switcher) switchWallpaper(p providers.Provider) error {
 	if err != nil {
 		return fmt.Errorf("error while post-processing images: %v", err)
 	}
-
 	if err := setFromFile(img); err != nil {
 		return fmt.Errorf("error setting wallpaper from file: %v", err)
 	}
+	s.current = img
 	return nil
 }
 
