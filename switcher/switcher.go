@@ -57,9 +57,9 @@ func New(p ...providers.Provider) *Switcher {
 	}
 }
 
-// Add provider as source for wallpaper
-func (s *Switcher) Add(p ...providers.Provider) {
-	s.provs = append(s.provs, p...)
+// Set provider as source for wallpaper
+func (s *Switcher) SetProvider(p ...providers.Provider) {
+	s.provs = p
 }
 
 // Switch to new wallpaper
