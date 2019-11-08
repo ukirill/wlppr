@@ -24,7 +24,7 @@ import (
 
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms724947.aspx
 const (
-	spiGetDeskWallpaper = 0x0073
+	//spiGetDeskWallpaper = 0x0073
 	spiSetDeskWallpaper = 0x0014
 
 	uiParam = 0x0000
@@ -123,6 +123,11 @@ func (s *Switcher) switchWallpaper(p providers.Provider) error {
 }
 
 func downloadPic(url string) (string, error) {
+	// check if file is already local
+	if internal.FileExist(url) == nil {
+		return url, nil
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err

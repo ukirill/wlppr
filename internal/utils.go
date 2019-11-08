@@ -68,13 +68,8 @@ func createNotExist(path string) error {
 }
 
 func Copy(src, dst string) error {
-	sourceFileStat, err := os.Stat(src)
-	if err != nil {
+	if err := FileExist(src); err != nil {
 		return err
-	}
-
-	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", src)
 	}
 
 	fn := filepath.Base(src)
@@ -93,6 +88,17 @@ func Copy(src, dst string) error {
 	defer destination.Close()
 	_, err = io.Copy(destination, source)
 	return err
+}
+
+func FileExist(path string) error {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("error on checking file existance : %v", err)
+	}
+	if !stat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", path)
+	}
+	return nil
 }
 
 func RandStringBytes(n int) string {
