@@ -36,6 +36,10 @@ func New() *Provider {
 	}
 }
 
+func (m *Provider) Title() string {
+	return "Moviemania"
+}
+
 // Refresh wallpapers data from Moviemania.io
 func (m *Provider) Refresh() error {
 	if err := m.refreshGenreUrls(); err != nil {

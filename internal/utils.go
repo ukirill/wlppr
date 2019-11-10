@@ -14,7 +14,7 @@ var cache string
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-// GetAppDataDir returns path to wlppr data directory. Creates it if not exists
+// GetAppDataDir returns path to wlppr data directory. Creates if it doesnt exist
 func GetAppDataDir() (string, error) {
 	if wlpprData != "" {
 		return wlpprData, nil
@@ -27,7 +27,7 @@ func GetAppDataDir() (string, error) {
 	return wlpprData, nil
 }
 
-// GetAppDataPath returns path to entry in Appdata directory
+// GetAppDataPath returns path to dir in Appdata directory. Creates if it doesnt exist
 func GetAppDataPath(entry string) (string, error) {
 	appdata, err := GetAppDataDir()
 	if err != nil {
@@ -40,7 +40,7 @@ func GetAppDataPath(entry string) (string, error) {
 	return p, nil
 }
 
-// GetCachePath returns path to entry in cache directory. Creates cache directory if not exists
+// GetCachePath returns path to entry in cache directory. Creates cache directory if it doesnt exist
 func GetCachePath(entry string) (string, error) {
 	if cache != "" {
 		return filepath.Join(cache, entry), nil

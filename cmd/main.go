@@ -6,6 +6,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/lxn/walk"
 
@@ -25,10 +26,11 @@ var (
 )
 
 func main() {
-	logfile, err := internal.GetAppDataPath("wlppr.log")
+	appData, err := internal.GetAppDataDir()
 	if err != nil {
-		log.Fatalf("error creating log file: %v", err)
+		log.Fatalf("error on getting AppData directory : %v", err)
 	}
+	logfile := filepath.Join(appData, "wlppr.log")
 	f, err := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
@@ -38,8 +40,8 @@ func main() {
 	log.SetOutput(f)
 	log.Println("Wlppr starts")
 
-	rd1 := reddit.New("https://www.reddit.com/r/wallpaper/hot/.json?t=month&limit=100")
-	rd2 := reddit.New("https://www.reddit.com/r/wallpapers/hot/.json?t=month&limit=100")
+	rd1 := reddit.New("Reddit wallpaper", "https://www.reddit.com/r/wallpaper/hot/.json?t=month&limit=100")
+	rd2 := reddit.New("Reddit wallpapers", "https://www.reddit.com/r/wallpapers/hot/.json?t=month&limit=100")
 	sw = switcher.New(rd1, rd2)
 	as = switcher.NewAutoSwitcher(sw, 15)
 	provs = []providers.Provider{rd1, rd2}
@@ -76,19 +78,27 @@ func main() {
 	}
 
 	// Action for switching wlpprs
-	wlpprAct, err := addNewAction("W&LPPR!", ni.ContextMenu().Actions(), switchHandler(sw))
+	hp := func(action *walk.Action) walk.EventHandler {
+		return switchHandler(sw)
+	}
+	wlpprAct, err := addNewAction("W&LPPR!", ni.ContextMenu().Actions(), hp)
 	if err != nil {
 		log.Fatal(err)
 	}
+	wlpprAct.SetToolTip("Get the new one!")
 	if err = wlpprAct.SetEnabled(false); err != nil {
 		log.Fatal(err)
 	}
 
 	addMonitorMenu(ni.ContextMenu().Actions())
 	addTimeoutMenu(ni.ContextMenu().Actions())
+	addProviderMenu(ni.ContextMenu().Actions(), provs...)
 
 	// Action for refreshing providers sources
-	refAct, err := addNewAction("R&efresh source", ni.ContextMenu().Actions(), refreshHandler(provs...))
+	hp = func(action *walk.Action) walk.EventHandler {
+		return refreshHandler(sw)
+	}
+	refAct, err := addNewAction("R&efresh source", ni.ContextMenu().Actions(), hp)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -98,15 +108,21 @@ func main() {
 
 	// Action for save favourite
 	fav, err := internal.GetAppDataPath("Favs")
+	hp = func(action *walk.Action) walk.EventHandler {
+		return favHandler(sw, fav)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
-	if _, err := addNewAction("Save to favs", ni.ContextMenu().Actions(), favHandler(sw, fav)); err != nil {
+	if _, err := addNewAction("Save to favs", ni.ContextMenu().Actions(), hp); err != nil {
 		log.Fatal(err)
 	}
 
 	// Action for exit
-	if _, err := addNewAction("E&xit", ni.ContextMenu().Actions(), exitHandler); err != nil {
+	hp = func(action *walk.Action) walk.EventHandler {
+		return exitHandler
+	}
+	if _, err := addNewAction("E&xit", ni.ContextMenu().Actions(), hp); err != nil {
 		log.Fatal(err)
 	}
 
@@ -144,12 +160,12 @@ func addMonitorMenu(actions *walk.ActionList) {
 	monitorNumMenuAct, _ := actions.AddMenu(monitorNumMenu)
 	monitorNumMenuAct.SetText("Monitors")
 	monitorNumMenuAct.SetToolTip("Set number of monitors")
-	oneAct, err := addNewRadioAction("1", monitorNumMenu.Actions(), monitorHandler(sw, 1))
+	oneAct, err := addNewRadioAction("1", monitorNumMenu.Actions(), monitorHandler(sw, 1), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	oneAct.SetChecked(true)
-	_, err = addNewRadioAction("2", monitorNumMenu.Actions(), monitorHandler(sw, 2))
+	_, err = addNewRadioAction("2", monitorNumMenu.Actions(), monitorHandler(sw, 2), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -160,8 +176,19 @@ func addTimeoutMenu(actions *walk.ActionList) {
 	timeoutMenuAct, _ := actions.AddMenu(timeoutMenu)
 	timeoutMenuAct.SetText("Timeout")
 	timeoutMenuAct.SetToolTip("Set timeout for refreshing wallpapers")
-	offAct, _ := addNewRadioAction("off", timeoutMenu.Actions(), timeoutHandler(as, 0))
+	offAct, _ := addNewRadioAction("off", timeoutMenu.Actions(), timeoutHandler(as, 0), nil)
 	offAct.SetChecked(true)
-	addNewRadioAction("15 min", timeoutMenu.Actions(), timeoutHandler(as, 15))
-	addNewRadioAction("1 hour", timeoutMenu.Actions(), timeoutHandler(as, 60))
+	addNewRadioAction("15 min", timeoutMenu.Actions(), timeoutHandler(as, 15), nil)
+	addNewRadioAction("1 hour", timeoutMenu.Actions(), timeoutHandler(as, 60), nil)
+}
+
+func addProviderMenu(actions *walk.ActionList, provs ...providers.Provider) {
+	provMenu, _ := walk.NewMenu()
+	provMenuAction, _ := actions.AddMenu(provMenu)
+	provMenuAction.SetText("Sources")
+	provMenuAction.SetToolTip("Choose Wlppr sources")
+	for _, p := range provs {
+		addNewCheckableAction(p.Title(), provMenu.Actions(), true,
+			provHandler(sw, p, true), provHandler(sw, p, false))
+	}
 }

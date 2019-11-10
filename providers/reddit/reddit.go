@@ -12,6 +12,7 @@ import (
 
 // Provider provides new wallpapers from subreddits
 type Provider struct {
+	name    string
 	siteurl string
 	newpics []string
 }
@@ -21,10 +22,15 @@ const (
 )
 
 // New Reddit wallpapers provider
-func New(url string) *Provider {
+func New(name, url string) *Provider {
 	return &Provider{
+		name:    name,
 		siteurl: url,
 	}
+}
+
+func (r *Provider) Title() string {
+	return r.name
 }
 
 // Refresh lists of subreddit wallpapers

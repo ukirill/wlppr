@@ -34,12 +34,19 @@ func favHandler(sw *switcher.Switcher, path string) walk.EventHandler {
 	}
 }
 
-func refreshHandler(provs ...providers.Provider) walk.EventHandler {
+func refreshHandler(sw *switcher.Switcher) walk.EventHandler {
 	return func() {
-		if err := refreshProviders(provs...); err != nil {
+		if err := sw.Refresh(); err != nil {
 			log.Printf("error while refreshing providers : %v", err)
 		}
 	}
+}
+
+func provHandler(sw *switcher.Switcher, p providers.Provider, state bool) walk.EventHandler {
+	if state {
+		return func() { sw.AddProvider(p) }
+	}
+	return func() { sw.RemoveProvider(p) }
 }
 
 func refreshProviders(provs ...providers.Provider) error {
@@ -54,7 +61,6 @@ func refreshProviders(provs ...providers.Provider) error {
 }
 
 func switchHandler(sw *switcher.Switcher) walk.EventHandler {
-	//go sw.Switch()
 	return func() {
 		if err := sw.Switch(); err != nil {
 			log.Printf("error switching wlppr : %v", err)

@@ -2,7 +2,7 @@ package switcher
 
 // TODO: add to switcher
 // DONE: 1. Refresh
-// 2. Save current to pics (kinda Favs)
+// DONE: 2. Save current to pics (kinda Favs)
 // DONE: 3. Switch by timeout setting
 // DONE: 4. Multimonitor
 
@@ -14,9 +14,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/ukirill/wlppr-go/internal"
 	"github.com/ukirill/wlppr-go/providers"
@@ -42,6 +45,7 @@ var (
 // Switcher uses providers to get random wallpaper and place it on desktop
 type Switcher struct {
 	provs      []providers.Provider
+	pMux       *sync.Mutex
 	resH       int
 	resW       int
 	current    string
@@ -51,21 +55,63 @@ type Switcher struct {
 func New(p ...providers.Provider) *Switcher {
 	return &Switcher{
 		provs:      p,
+		pMux:       &sync.Mutex{},
 		resH:       1080,
 		resW:       1920,
 		MonitorNum: 1,
 	}
 }
 
-// Set provider as source for wallpaper
-func (s *Switcher) SetProvider(p ...providers.Provider) {
+// Set providers as source for wallpaper
+func (s *Switcher) SetProviders(p ...providers.Provider) {
 	s.provs = p
+}
+
+// AddProvider adds provider p if it isnt added already
+func (s *Switcher) AddProvider(p providers.Provider) {
+	s.pMux.Lock()
+	defer s.pMux.Unlock()
+	for _, cur := range s.provs {
+		if cur == p {
+			return
+		}
+	}
+	s.provs = append(s.provs, p)
+}
+
+// RemoveProvider remove provider instance p from the list of available
+func (s *Switcher) RemoveProvider(p providers.Provider) {
+	s.pMux.Lock()
+	defer s.pMux.Unlock()
+	for i, cur := range s.provs {
+		if cur == p {
+			s.provs = append(s.provs[:i], s.provs[i+1:]...)
+		}
+	}
 }
 
 // Switch to new wallpaper
 func (s *Switcher) Switch() error {
+	if len(s.provs) == 0 {
+		return fmt.Errorf("no providers available to switch")
+	}
 	rand.Seed(time.Now().Unix())
 	return s.switchWallpaper(s.provs[rand.Intn(len(s.provs))])
+}
+
+// Refresh update all active providers
+func (s *Switcher) Refresh() error {
+	if len(s.provs) == 0 {
+		return nil
+	}
+	g := errgroup.Group{}
+	for _, p := range s.provs {
+		p := p
+		g.Go(func() error {
+			return p.Refresh()
+		})
+	}
+	return g.Wait()
 }
 
 // SaveCur saves current wallpaper to the specified local path.
@@ -77,7 +123,7 @@ func (s *Switcher) SaveCur(path string) error {
 	return internal.Copy(s.current, path)
 }
 
-// setFromFile sets the wallpaper for the current user.
+// setFromFile sets the wallpaper for the current user
 func setFromFile(filename string) error {
 	filenameUTF16, err := syscall.UTF16PtrFromString(filename)
 	if err != nil {
