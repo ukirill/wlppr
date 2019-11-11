@@ -6,7 +6,7 @@ import (
 	"github.com/lxn/walk"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/ukirill/wlppr-go/providers"
+	"github.com/ukirill/wlppr-go/provider"
 	"github.com/ukirill/wlppr-go/switcher"
 )
 
@@ -42,14 +42,14 @@ func refreshHandler(sw switcher.Switcher) walk.EventHandler {
 	}
 }
 
-func provHandler(sw switcher.Switcher, p providers.Provider, state bool) walk.EventHandler {
+func provHandler(sw switcher.Switcher, p provider.Provider, state bool) walk.EventHandler {
 	if state {
 		return func() { sw.AddProvider(p) }
 	}
 	return func() { sw.RemoveProvider(p) }
 }
 
-func refreshProviders(provs ...providers.Provider) error {
+func refreshProviders(provs ...provider.Provider) error {
 	g := errgroup.Group{}
 	for _, p := range provs {
 		p := p

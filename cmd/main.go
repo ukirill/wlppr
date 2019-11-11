@@ -11,9 +11,9 @@ import (
 	"github.com/lxn/walk"
 
 	"github.com/ukirill/wlppr-go/cmd/internal"
-	"github.com/ukirill/wlppr-go/providers"
-	"github.com/ukirill/wlppr-go/providers/local"
-	"github.com/ukirill/wlppr-go/providers/reddit"
+	"github.com/ukirill/wlppr-go/provider"
+	"github.com/ukirill/wlppr-go/provider/local"
+	"github.com/ukirill/wlppr-go/provider/reddit"
 	"github.com/ukirill/wlppr-go/switcher"
 )
 
@@ -190,7 +190,7 @@ func addTimeoutMenu(actions *walk.ActionList) {
 	addNewRadioAction("1 hour", timeoutMenu.Actions(), timeoutHandler(sw, 60), nil)
 }
 
-func addProviderMenu(actions *walk.ActionList, provs ...providers.Provider) {
+func addProviderMenu(actions *walk.ActionList, provs ...provider.Provider) {
 	provMenu, _ := walk.NewMenu()
 	provMenuAction, _ := actions.AddMenu(provMenu)
 	provMenuAction.SetText("Sources")

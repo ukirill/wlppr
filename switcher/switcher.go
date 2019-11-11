@@ -16,7 +16,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/ukirill/wlppr-go/providers"
+	"github.com/ukirill/wlppr-go/provider"
 )
 
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms724947.aspx
@@ -37,10 +37,10 @@ var (
 )
 
 type Switcher interface {
-	Providers() []providers.Provider
-	SetProviders(p ...providers.Provider)
-	AddProvider(p providers.Provider)
-	RemoveProvider(p providers.Provider)
+	Providers() []provider.Provider
+	SetProviders(p ...provider.Provider)
+	AddProvider(p provider.Provider)
+	RemoveProvider(p provider.Provider)
 	SetDispNum(n int)
 	Switch() error
 	Refresh() error
@@ -49,7 +49,7 @@ type Switcher interface {
 
 // baseSwitcher uses providers to get random wallpaper and place it on desktop
 type baseSwitcher struct {
-	provs     []providers.Provider
+	provs     []provider.Provider
 	pMux      *sync.Mutex
 	resH      int
 	resW      int
@@ -58,7 +58,7 @@ type baseSwitcher struct {
 	cachePath string
 }
 
-func New(cachePath string, p ...providers.Provider) *baseSwitcher {
+func New(cachePath string, p ...provider.Provider) *baseSwitcher {
 	return &baseSwitcher{
 		provs:     p,
 		pMux:      &sync.Mutex{},
@@ -70,16 +70,16 @@ func New(cachePath string, p ...providers.Provider) *baseSwitcher {
 }
 
 // Set providers as source for wallpaper
-func (s *baseSwitcher) SetProviders(p ...providers.Provider) {
+func (s *baseSwitcher) SetProviders(p ...provider.Provider) {
 	s.provs = p
 }
 
-func (s *baseSwitcher) Providers() []providers.Provider {
+func (s *baseSwitcher) Providers() []provider.Provider {
 	return s.provs
 }
 
 // AddProvider adds provider p if it isnt added already
-func (s *baseSwitcher) AddProvider(p providers.Provider) {
+func (s *baseSwitcher) AddProvider(p provider.Provider) {
 	s.pMux.Lock()
 	defer s.pMux.Unlock()
 	for _, cur := range s.provs {
@@ -91,7 +91,7 @@ func (s *baseSwitcher) AddProvider(p providers.Provider) {
 }
 
 // RemoveProvider remove provider instance p from the list of available
-func (s *baseSwitcher) RemoveProvider(p providers.Provider) {
+func (s *baseSwitcher) RemoveProvider(p provider.Provider) {
 	s.pMux.Lock()
 	defer s.pMux.Unlock()
 	for i, cur := range s.provs {
@@ -157,7 +157,7 @@ func setFromFile(filename string) error {
 	return nil
 }
 
-func (s *baseSwitcher) switchWallpaper(p providers.Provider) error {
+func (s *baseSwitcher) switchWallpaper(p provider.Provider) error {
 	i := 0
 	paths := make([]string, s.dispnum)
 	for i < s.dispnum {

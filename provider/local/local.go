@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ukirill/wlppr-go/providers"
+	"github.com/ukirill/wlppr-go/provider"
 )
 
 type Provider struct {
@@ -15,7 +15,7 @@ type Provider struct {
 	files []string
 }
 
-func New(name, path string) providers.Provider {
+func New(name, path string) provider.Provider {
 	return &Provider{
 		name,
 		path,

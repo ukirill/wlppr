@@ -1,7 +1,7 @@
 package switcher
 
 import (
-	"github.com/ukirill/wlppr-go/providers"
+	"github.com/ukirill/wlppr-go/provider"
 	"log"
 	"time"
 )
@@ -19,7 +19,7 @@ type timeSwitcher struct {
 	cancel  chan interface{}
 }
 
-func NewAutoSwitcher(minutes uint, cachePath string, prov ...providers.Provider) AutoSwitcher {
+func NewAutoSwitcher(minutes uint, cachePath string, prov ...provider.Provider) AutoSwitcher {
 	return &timeSwitcher{
 		New(cachePath, prov...),
 		minutes,
