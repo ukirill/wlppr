@@ -1,0 +1,18 @@
+providers:
+  - # First default reddit source
+    name: r/wallpaper
+    url: "https://www.reddit.com/r/wallpaper/hot/.json?t=month&limit=100"
+  - # Second reddit source, you might want to change "hot" to "new" or
+    # period("t=") or limit
+    name: r/wallpapers
+    url: "https://www.reddit.com/r/wallpapers/hot/.json?t=month&limit=100"
+timers:
+  - # Timer for autoswitching every 15 minutes
+    name: 15 min
+    minutes: 15
+  - name: 1 hour
+    minutes: 60
+  - name: 4 hours
+    minutes: 240
+  - name: every day
+    minutes: 1440
