@@ -11,6 +11,7 @@ import (
 // TODO: struct for global state or settings?
 var wlpprData string
 var cache string
+var favs string
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -51,6 +52,10 @@ func GetCachePath(entry string) (string, error) {
 	}
 	cache = c
 	return filepath.Join(cache, entry), nil
+}
+
+func GetFavDir() (string, error) {
+	return GetAppDataPath("Favs")
 }
 
 func createNotExist(path string) error {

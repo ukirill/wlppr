@@ -22,10 +22,13 @@ func addNewAction(name string, actions *walk.ActionList, hp handlerProvider) (*w
 func addNewCheckableAction(name string, actions *walk.ActionList, init bool,
 	check walk.EventHandler, uncheck walk.EventHandler) (*walk.Action, error) {
 	hp := func(action *walk.Action) walk.EventHandler {
-		if action.Checked() {
-			return check
+		return func() {
+			if action.Checked() {
+				check()
+				return
+			}
+			uncheck()
 		}
-		return uncheck
 	}
 	action, err := addNewAction(name, actions, hp)
 	if err != nil {

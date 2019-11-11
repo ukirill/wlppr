@@ -12,6 +12,7 @@ import (
 
 	"github.com/ukirill/wlppr-go/internal"
 	"github.com/ukirill/wlppr-go/providers"
+	"github.com/ukirill/wlppr-go/providers/local"
 	"github.com/ukirill/wlppr-go/providers/reddit"
 	"github.com/ukirill/wlppr-go/switcher"
 )
@@ -20,9 +21,6 @@ import (
 var (
 	sw *switcher.Switcher
 	as *switcher.AutoSwitcher
-
-	// TODO: make switcher able to refresh provs and remove
-	provs []providers.Provider
 )
 
 func main() {
@@ -42,9 +40,12 @@ func main() {
 
 	rd1 := reddit.New("Reddit wallpaper", "https://www.reddit.com/r/wallpaper/hot/.json?t=month&limit=100")
 	rd2 := reddit.New("Reddit wallpapers", "https://www.reddit.com/r/wallpapers/hot/.json?t=month&limit=100")
-	sw = switcher.New(rd1, rd2)
-	as = switcher.NewAutoSwitcher(sw, 15)
-	provs = []providers.Provider{rd1, rd2}
+
+	favPath, _ := internal.GetFavDir()
+	fav := local.New("Favourites", favPath)
+
+	sw = switcher.New(rd1, rd2, fav)
+	as = switcher.NewAutoSwitcher(sw, 0)
 	log.Println("Providers created")
 
 	mw, err := walk.NewMainWindow()
@@ -92,7 +93,7 @@ func main() {
 
 	addMonitorMenu(ni.ContextMenu().Actions())
 	addTimeoutMenu(ni.ContextMenu().Actions())
-	addProviderMenu(ni.ContextMenu().Actions(), provs...)
+	addProviderMenu(ni.ContextMenu().Actions(), sw.Providers()...)
 
 	// Action for refreshing providers sources
 	hp = func(action *walk.Action) walk.EventHandler {
@@ -106,10 +107,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Action for save favourite
-	fav, err := internal.GetAppDataPath("Favs")
+	// Action for save fav
 	hp = func(action *walk.Action) walk.EventHandler {
-		return favHandler(sw, fav)
+		return favHandler(sw, favPath)
 	}
 	if err != nil {
 		log.Fatal(err)

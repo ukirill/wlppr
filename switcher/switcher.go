@@ -67,6 +67,10 @@ func (s *Switcher) SetProviders(p ...providers.Provider) {
 	s.provs = p
 }
 
+func (s *Switcher) Providers() []providers.Provider {
+	return s.provs
+}
+
 // AddProvider adds provider p if it isnt added already
 func (s *Switcher) AddProvider(p providers.Provider) {
 	s.pMux.Lock()
