@@ -10,15 +10,15 @@ import (
 	"github.com/ukirill/wlppr-go/switcher"
 )
 
-func monitorHandler(sw *switcher.Switcher, n int) walk.EventHandler {
+func monitorHandler(sw switcher.Switcher, n int) walk.EventHandler {
 	return func() {
-		sw.MonitorNum = n
+		sw.SetDispNum(n)
 	}
 }
 
-func timeoutHandler(as *switcher.AutoSwitcher, minutes uint) walk.EventHandler {
+func timeoutHandler(sw switcher.AutoSwitcher, minutes uint) walk.EventHandler {
 	return func() {
-		as.SetTimeout(minutes)
+		sw.SetTimeout(minutes)
 	}
 }
 
@@ -26,7 +26,7 @@ func exitHandler() {
 	walk.App().Exit(0)
 }
 
-func favHandler(sw *switcher.Switcher, path string) walk.EventHandler {
+func favHandler(sw switcher.Switcher, path string) walk.EventHandler {
 	return func() {
 		if err := sw.SaveCur(path); err != nil {
 			log.Printf("error on saving fav wlppr : %v", err)
@@ -34,7 +34,7 @@ func favHandler(sw *switcher.Switcher, path string) walk.EventHandler {
 	}
 }
 
-func refreshHandler(sw *switcher.Switcher) walk.EventHandler {
+func refreshHandler(sw switcher.Switcher) walk.EventHandler {
 	return func() {
 		if err := sw.Refresh(); err != nil {
 			log.Printf("error while refreshing providers : %v", err)
@@ -42,7 +42,7 @@ func refreshHandler(sw *switcher.Switcher) walk.EventHandler {
 	}
 }
 
-func provHandler(sw *switcher.Switcher, p providers.Provider, state bool) walk.EventHandler {
+func provHandler(sw switcher.Switcher, p providers.Provider, state bool) walk.EventHandler {
 	if state {
 		return func() { sw.AddProvider(p) }
 	}
@@ -60,7 +60,7 @@ func refreshProviders(provs ...providers.Provider) error {
 	return g.Wait()
 }
 
-func switchHandler(sw *switcher.Switcher) walk.EventHandler {
+func switchHandler(sw switcher.Switcher) walk.EventHandler {
 	return func() {
 		if err := sw.Switch(); err != nil {
 			log.Printf("error switching wlppr : %v", err)

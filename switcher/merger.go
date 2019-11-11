@@ -1,6 +1,7 @@
 package switcher
 
 import (
+	"github.com/ukirill/wlppr-go/internal"
 	"image"
 	"image/draw"
 	"os"
@@ -8,16 +9,14 @@ import (
 
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/anthonynsimon/bild/transform"
-
-	"github.com/ukirill/wlppr-go/internal"
 )
 
-func (s Switcher) mergeImage(paths []string) (fn string, err error) {
-	if s.MonitorNum == 2 {
+func (s baseSwitcher) mergeImage(paths []string) (fn string, err error) {
+	if s.dispnum == 2 {
 		fn, err = s.merge(paths[0], paths[1])
 	} else {
 		img := s.transform(paths[0])
-		fn, err = randImageName(".png")
+		fn, err = randImageName(s.cachePath, ".png")
 		imgio.Save(fn, img, imgio.PNG)
 	}
 
@@ -25,7 +24,7 @@ func (s Switcher) mergeImage(paths []string) (fn string, err error) {
 	return
 }
 
-func (s *Switcher) merge(path1, path2 string) (string, error) {
+func (s *baseSwitcher) merge(path1, path2 string) (string, error) {
 	// TODO: Optimize file operations
 	img1 := s.transform(path1)
 	img2 := s.transform(path2)
@@ -36,25 +35,21 @@ func (s *Switcher) merge(path1, path2 string) (string, error) {
 
 	draw.Draw(rgba, r1, img1, image.Point{0, 0}, draw.Src)
 	draw.Draw(rgba, r2, img2, image.Point{0, 0}, draw.Src)
-	fn, err := randImageName(".png")
+	fn, err := randImageName(s.cachePath, ".png")
 	imgio.Save(fn, rgba.SubImage(r), imgio.PNG)
 	os.Remove(path1)
 	os.Remove(path2)
 	return fn, err
 }
 
-func (s *Switcher) transform(path string) image.Image {
+func (s *baseSwitcher) transform(path string) image.Image {
 	img, _ := imgio.Open(path)
 	trans := transform.Resize(img, s.resW, s.resH, transform.Lanczos)
 	return trans.SubImage(image.Rect(0, 0, s.resW, s.resH))
 }
 
-func randImageName(fext string) (string, error) {
+func randImageName(basepath, fext string) (string, error) {
 	fname := internal.RandStringBytes(16) + fext
-	var err error
-	fname, err = internal.GetCachePath(fname)
-	if err != nil {
-		return "", err
-	}
+	fname = filepath.Join(basepath, fname)
 	return fname, nil
 }

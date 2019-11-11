@@ -2,6 +2,7 @@ package switcher
 
 import (
 	"fmt"
+	"github.com/ukirill/wlppr-go/internal"
 	"io"
 	"log"
 	"math/rand"
@@ -15,7 +16,6 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/ukirill/wlppr-go/internal"
 	"github.com/ukirill/wlppr-go/providers"
 )
 
@@ -36,37 +36,50 @@ var (
 	systemParametersInfo = user32.NewProc("SystemParametersInfoW")
 )
 
-// Switcher uses providers to get random wallpaper and place it on desktop
-type Switcher struct {
-	provs      []providers.Provider
-	pMux       *sync.Mutex
-	resH       int
-	resW       int
-	current    string
-	MonitorNum int
+type Switcher interface {
+	Providers() []providers.Provider
+	SetProviders(p ...providers.Provider)
+	AddProvider(p providers.Provider)
+	RemoveProvider(p providers.Provider)
+	SetDispNum(n int)
+	Switch() error
+	Refresh() error
+	SaveCur(path string) error
 }
 
-func New(p ...providers.Provider) *Switcher {
-	return &Switcher{
-		provs:      p,
-		pMux:       &sync.Mutex{},
-		resH:       1080,
-		resW:       1920,
-		MonitorNum: 1,
+// baseSwitcher uses providers to get random wallpaper and place it on desktop
+type baseSwitcher struct {
+	provs     []providers.Provider
+	pMux      *sync.Mutex
+	resH      int
+	resW      int
+	current   string
+	dispnum   int
+	cachePath string
+}
+
+func New(cachePath string, p ...providers.Provider) *baseSwitcher {
+	return &baseSwitcher{
+		provs:     p,
+		pMux:      &sync.Mutex{},
+		resH:      1080,
+		resW:      1920,
+		dispnum:   1,
+		cachePath: cachePath,
 	}
 }
 
 // Set providers as source for wallpaper
-func (s *Switcher) SetProviders(p ...providers.Provider) {
+func (s *baseSwitcher) SetProviders(p ...providers.Provider) {
 	s.provs = p
 }
 
-func (s *Switcher) Providers() []providers.Provider {
+func (s *baseSwitcher) Providers() []providers.Provider {
 	return s.provs
 }
 
 // AddProvider adds provider p if it isnt added already
-func (s *Switcher) AddProvider(p providers.Provider) {
+func (s *baseSwitcher) AddProvider(p providers.Provider) {
 	s.pMux.Lock()
 	defer s.pMux.Unlock()
 	for _, cur := range s.provs {
@@ -78,7 +91,7 @@ func (s *Switcher) AddProvider(p providers.Provider) {
 }
 
 // RemoveProvider remove provider instance p from the list of available
-func (s *Switcher) RemoveProvider(p providers.Provider) {
+func (s *baseSwitcher) RemoveProvider(p providers.Provider) {
 	s.pMux.Lock()
 	defer s.pMux.Unlock()
 	for i, cur := range s.provs {
@@ -88,8 +101,12 @@ func (s *Switcher) RemoveProvider(p providers.Provider) {
 	}
 }
 
+func (s *baseSwitcher) SetDispNum(n int) {
+	s.dispnum = n
+}
+
 // Switch to new wallpaper
-func (s *Switcher) Switch() error {
+func (s *baseSwitcher) Switch() error {
 	if len(s.provs) == 0 {
 		return fmt.Errorf("no providers available to switch")
 	}
@@ -98,7 +115,7 @@ func (s *Switcher) Switch() error {
 }
 
 // Refresh update all active providers
-func (s *Switcher) Refresh() error {
+func (s *baseSwitcher) Refresh() error {
 	if len(s.provs) == 0 {
 		return nil
 	}
@@ -114,7 +131,7 @@ func (s *Switcher) Refresh() error {
 
 // SaveCur saves current wallpaper to the specified local path.
 // Path should exist
-func (s *Switcher) SaveCur(path string) error {
+func (s *baseSwitcher) SaveCur(path string) error {
 	if s.current == "" {
 		return fmt.Errorf("no current wallpaper to save")
 	}
@@ -140,15 +157,15 @@ func setFromFile(filename string) error {
 	return nil
 }
 
-func (s *Switcher) switchWallpaper(p providers.Provider) error {
+func (s *baseSwitcher) switchWallpaper(p providers.Provider) error {
 	i := 0
-	paths := make([]string, s.MonitorNum)
-	for i < s.MonitorNum {
+	paths := make([]string, s.dispnum)
+	for i < s.dispnum {
 		url, err := p.Random()
 		if err != nil {
 			return fmt.Errorf("error getting random url, might be empty list, try to refresh: %v", err)
 		}
-		paths[i], err = downloadPic(url)
+		paths[i], err = downloadPic(url, s.cachePath)
 		if err != nil {
 			return fmt.Errorf("erorr while downloading pic: %v", err)
 		}
@@ -166,7 +183,7 @@ func (s *Switcher) switchWallpaper(p providers.Provider) error {
 	return nil
 }
 
-func downloadPic(url string) (string, error) {
+func downloadPic(url, dest string) (string, error) {
 	// check if file is already local
 	if internal.FileExist(url) == nil {
 		return url, nil
@@ -183,10 +200,7 @@ func downloadPic(url string) (string, error) {
 	}
 
 	fname := internal.RandStringBytes(16) + fext
-	p, err := internal.GetCachePath(fname)
-	if err != nil {
-		return "", err
-	}
+	p := filepath.Join(dest, fname)
 
 	// Create the file
 	out, err := os.Create(p)

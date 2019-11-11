@@ -1,31 +1,39 @@
 package switcher
 
 import (
+	"github.com/ukirill/wlppr-go/providers"
 	"log"
 	"time"
 )
 
-type AutoSwitcher struct {
-	sw      *Switcher
+type AutoSwitcher interface {
+	Switcher
+	SetTimeout(minutes uint)
+	Start()
+	Stop()
+}
+
+type timeSwitcher struct {
+	*baseSwitcher
 	timeout uint
 	cancel  chan interface{}
 }
 
-func NewAutoSwitcher(sw *Switcher, minutes uint) *AutoSwitcher {
-	return &AutoSwitcher{
-		sw:      sw,
-		timeout: minutes,
-		cancel:  make(chan interface{}),
+func NewAutoSwitcher(minutes uint, cachePath string, prov ...providers.Provider) AutoSwitcher {
+	return &timeSwitcher{
+		New(cachePath, prov...),
+		minutes,
+		make(chan interface{}),
 	}
 }
 
-func (as *AutoSwitcher) SetTimeout(minutes uint) {
+func (as *timeSwitcher) SetTimeout(minutes uint) {
 	as.timeout = minutes
 	as.Stop()
 	as.Start()
 }
 
-func (as *AutoSwitcher) Start() {
+func (as *timeSwitcher) Start() {
 	if as.timeout == 0 {
 		return
 	}
@@ -38,7 +46,7 @@ func (as *AutoSwitcher) Start() {
 
 				return
 			case <-ticker.C:
-				if err := as.sw.Switch(); err != nil {
+				if err := as.Switch(); err != nil {
 					log.Printf("error on autoswitching wallpaper: %v", err)
 				}
 			}
@@ -46,7 +54,7 @@ func (as *AutoSwitcher) Start() {
 	}()
 }
 
-func (as *AutoSwitcher) Stop() {
+func (as *timeSwitcher) Stop() {
 	close(as.cancel)
 	as.cancel = make(chan interface{})
 }

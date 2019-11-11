@@ -10,17 +10,15 @@ import (
 
 	"github.com/lxn/walk"
 
-	"github.com/ukirill/wlppr-go/internal"
+	"github.com/ukirill/wlppr-go/cmd/internal"
 	"github.com/ukirill/wlppr-go/providers"
 	"github.com/ukirill/wlppr-go/providers/local"
 	"github.com/ukirill/wlppr-go/providers/reddit"
 	"github.com/ukirill/wlppr-go/switcher"
 )
 
-// Program state
 var (
-	sw *switcher.Switcher
-	as *switcher.AutoSwitcher
+	sw switcher.AutoSwitcher
 )
 
 func main() {
@@ -44,9 +42,9 @@ func main() {
 	favPath, _ := internal.GetFavDir()
 	fav := local.New("Favourites", favPath)
 
-	sw = switcher.New(rd1, rd2, fav)
-	as = switcher.NewAutoSwitcher(sw, 0)
-	log.Println("Providers created")
+	cachePath, _ := internal.GetCachePath("")
+	sw = switcher.NewAutoSwitcher(0, cachePath, rd1, rd2, fav)
+	log.Println("Switcher created")
 
 	mw, err := walk.NewMainWindow()
 	if err != nil {
@@ -186,10 +184,10 @@ func addTimeoutMenu(actions *walk.ActionList) {
 	timeoutMenuAct, _ := actions.AddMenu(timeoutMenu)
 	timeoutMenuAct.SetText("Timeout")
 	timeoutMenuAct.SetToolTip("Set timeout for refreshing wallpapers")
-	offAct, _ := addNewRadioAction("off", timeoutMenu.Actions(), timeoutHandler(as, 0), nil)
+	offAct, _ := addNewRadioAction("off", timeoutMenu.Actions(), timeoutHandler(sw, 0), nil)
 	offAct.SetChecked(true)
-	addNewRadioAction("15 min", timeoutMenu.Actions(), timeoutHandler(as, 15), nil)
-	addNewRadioAction("1 hour", timeoutMenu.Actions(), timeoutHandler(as, 60), nil)
+	addNewRadioAction("15 min", timeoutMenu.Actions(), timeoutHandler(sw, 15), nil)
+	addNewRadioAction("1 hour", timeoutMenu.Actions(), timeoutHandler(sw, 60), nil)
 }
 
 func addProviderMenu(actions *walk.ActionList, provs ...providers.Provider) {
