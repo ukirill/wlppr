@@ -1,11 +1,5 @@
 package switcher
 
-// TODO: add to switcher
-// DONE: 1. Refresh
-// DONE: 2. Save current to pics (kinda Favs)
-// DONE: 3. Switch by timeout setting
-// DONE: 4. Multimonitor
-
 import (
 	"fmt"
 	"io"

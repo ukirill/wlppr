@@ -151,8 +151,18 @@ func main() {
 		}
 	}()
 
-	// Run the message loop.
-	mw.Run()
+	func() {
+		defer logPanic()
+
+		// Run the message loop.
+		mw.Run()
+	}()
+}
+
+func logPanic() {
+	if p := recover(); p != nil {
+		log.Fatalf("[PANIC] program panic : %v", p)
+	}
 }
 
 func addMonitorMenu(actions *walk.ActionList) {
