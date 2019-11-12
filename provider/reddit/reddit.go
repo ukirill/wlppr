@@ -15,7 +15,7 @@ type Provider struct {
 	name    string
 	siteurl string
 	newpics []string
-	rand *rand.Rand
+	rand    *rand.Rand
 }
 
 const (
@@ -27,7 +27,7 @@ func New(name, url string) *Provider {
 	return &Provider{
 		name:    name,
 		siteurl: url,
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 

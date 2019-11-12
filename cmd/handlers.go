@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"runtime"
 
 	"github.com/lxn/walk"
 	"golang.org/x/sync/errgroup"
@@ -60,10 +61,13 @@ func refreshProviders(provs ...provider.Provider) error {
 	return g.Wait()
 }
 
-func switchHandler(sw switcher.Switcher) walk.EventHandler {
+func switchHandler(action *walk.Action, sw switcher.Switcher) walk.EventHandler {
 	return func() {
+		action.SetEnabled(false)
+		defer action.SetEnabled(true)
 		if err := sw.Switch(); err != nil {
 			log.Printf("error switching wlppr : %v", err)
 		}
+		runtime.GC()
 	}
 }
