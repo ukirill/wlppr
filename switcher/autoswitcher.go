@@ -1,9 +1,10 @@
 package switcher
 
 import (
-	"github.com/ukirill/wlppr-go/provider"
 	"log"
 	"time"
+
+	"github.com/ukirill/wlppr-go/provider"
 )
 
 type AutoSwitcher interface {

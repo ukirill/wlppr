@@ -1,11 +1,12 @@
 package switcher
 
 import (
-	"github.com/ukirill/wlppr-go/internal"
 	"image"
 	"image/draw"
 	"os"
 	"path/filepath"
+
+	"github.com/ukirill/wlppr-go/internal"
 
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/anthonynsimon/bild/transform"
