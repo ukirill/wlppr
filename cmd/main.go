@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/lxn/walk"
 
@@ -43,7 +44,10 @@ func main() {
 	fav := local.New("Favourites", favPath)
 
 	cachePath, _ := internal.GetCachePath("")
-	sw = switcher.NewAutoSwitcher(0, cachePath, rd1, rd2, fav)
+	swHandle := func(err error) {
+		runtime.GC()
+	}
+	sw = switcher.NewAutoSwitcher(0, cachePath, swHandle, rd1, rd2, fav)
 	log.Println("Switcher created")
 
 	mw, err := walk.NewMainWindow()
@@ -78,7 +82,7 @@ func main() {
 
 	// Action for switching wlpprs
 	hp := func(action *walk.Action) walk.EventHandler {
-		return switchHandler(sw)
+		return switchHandler(action, sw)
 	}
 	wlpprAct, err := addNewAction("W&LPPR!", ni.ContextMenu().Actions(), hp)
 	if err != nil {
