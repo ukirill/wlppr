@@ -2,7 +2,6 @@ package switcher
 
 import (
 	"fmt"
-	"github.com/ukirill/wlppr-go/internal"
 	"io"
 	"log"
 	"math/rand"
@@ -16,6 +15,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/ukirill/wlppr-go/internal"
 	"github.com/ukirill/wlppr-go/provider"
 )
 
@@ -158,20 +158,10 @@ func setFromFile(filename string) error {
 }
 
 func (s *baseSwitcher) switchWallpaper(p provider.Provider) error {
-	i := 0
-	paths := make([]string, s.dispnum)
-	for i < s.dispnum {
-		url, err := p.Random()
-		if err != nil {
-			return fmt.Errorf("error getting random url, might be empty list, try to refresh: %v", err)
-		}
-		paths[i], err = downloadPic(url, s.cachePath)
-		if err != nil {
-			return fmt.Errorf("erorr while downloading pic: %v", err)
-		}
-		i++
+	paths, err := downloadRandom(p, s.dispnum, s.cachePath)
+	if err != nil {
+		return fmt.Errorf("error on downloading images: %v", err)
 	}
-
 	img, err := s.mergeImage(paths)
 	if err != nil {
 		return fmt.Errorf("error while post-processing images: %v", err)
@@ -181,6 +171,28 @@ func (s *baseSwitcher) switchWallpaper(p provider.Provider) error {
 	}
 	s.current = img
 	return nil
+}
+
+func downloadRandom(p provider.Provider, num int, dest string) ([]string, error) {
+	g := errgroup.Group{}
+	i := 0
+	paths := make([]string, num)
+	for i < num {
+		j := i
+		g.Go(func() error {
+			url, err := p.Random()
+			if err != nil {
+				return fmt.Errorf("error getting random url, might be empty list, try to refresh: %v", err)
+			}
+			paths[j], err = downloadPic(url, dest)
+			return err
+		})
+		i++
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	return paths, nil
 }
 
 func downloadPic(url, dest string) (string, error) {
