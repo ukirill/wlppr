@@ -15,6 +15,7 @@ type Provider struct {
 	name    string
 	siteurl string
 	newpics []string
+	rand *rand.Rand
 }
 
 const (
@@ -26,6 +27,7 @@ func New(name, url string) *Provider {
 	return &Provider{
 		name:    name,
 		siteurl: url,
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -69,6 +71,5 @@ func (r *Provider) Refresh() error {
 
 // Random gets random picture (wallpaper) from source
 func (r *Provider) Random() (string, error) {
-	rand.Seed(time.Now().Unix())
-	return r.newpics[rand.Intn(len(r.newpics))], nil
+	return r.newpics[r.rand.Intn(len(r.newpics))], nil
 }
