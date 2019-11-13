@@ -15,6 +15,7 @@ type Provider struct {
 	files []string
 }
 
+// New creates new local directory provider
 func New(name, path string) provider.Provider {
 	return &Provider{
 		name,

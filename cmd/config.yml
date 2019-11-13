@@ -1,9 +1,13 @@
+# Providers collection. Current known types "reddit","local","moviemania"
+# Every provider requires name, local and reddit also requires url
 providers:
   - # First default reddit source
+    type: reddit
     name: r/wallpaper
     url: "https://www.reddit.com/r/wallpaper/hot/.json?t=month&limit=100"
   - # Second reddit source, you might want to change "hot" to "new" or
     # period("t=") or limit
+    type: reddit
     name: r/wallpapers
     url: "https://www.reddit.com/r/wallpapers/hot/.json?t=month&limit=100"
 timers:
